@@ -10,12 +10,11 @@
 
 namespace nurbsfit
 {
-  inline
-  std::vector<hrlib::vertex<2>> fit_qb(const std::vector<hrlib::vertex<2>> &target, double relax=0.3) {
+  template<typename Tprops>
+  std::vector<hrlib::vertex<2>> fit_qb(const std::vector<hrlib::vertex<2>> &target, const Tprops &props) {
     assert(target.size()==4); // TODO warn or switch to least squares?
 
-    const double init_relax = relax;
-    const double TOL = 0.01;
+    double relax = props.relax;
 
     auto P0 = target[0];
     auto Pu = target[1];
@@ -30,8 +29,7 @@ namespace nurbsfit
     double v_prev = v;
 
     size_t it = 0;
-    const size_t max_it = 1024;
-    while (it++<max_it) {
+    while (it++<props.max_it) {
       using namespace boost::numeric::ublas;
       // Quadratic Bezier: (1-t)^2 P0 + 2t(1-t) Pc + u^2 P1 = P(t)
 
@@ -116,7 +114,7 @@ namespace nurbsfit
       v = (x(1)-v)*relax + v;
       u = std::max(0., std::min(u, 1.));
       v = std::max(0., std::min(v, 1.));
-      relax = std::min(init_relax, relax*1.01); // carefully regenerate the relaxation
+      relax = std::min(props.relax, relax*1.01); // carefully regenerate the relaxation
 
       Pc[0] = x(6);
       Pc[1] = x(7);
@@ -129,13 +127,13 @@ namespace nurbsfit
       std::cerr << "res v2: " << std::abs(v*v-x(3)) << std::endl << std::endl;
       */
       // u, v, u^2, v^2, (1-u)^2, (1-v)^2, Pcx, Pcy
-      if (std::abs(u-x(0))<TOL &&
-          std::abs(v-x(1))<TOL &&
-          std::abs(u*u-x(2))<(TOL*TOL) &&
-          std::abs(v*v-x(3))<(TOL*TOL)) { // &&
+      if (std::abs(u-x(0))<props.tol &&
+          std::abs(v-x(1))<props.tol &&
+          std::abs(u*u-x(2))<(props.tol*props.tol) &&
+          std::abs(v*v-x(3))<(props.tol*props.tol)) { // &&
           /*
-          (1-u)*(1-u)-x(4)<TOL &&
-          (1-v)*(1-v)-x(5)<TOL) {
+          (1-u)*(1-u)-x(4)<props.tol &&
+          (1-v)*(1-v)-x(5)<props.tol) {
           */
         std::cerr << "iterations: " << it << std::endl;
         break;

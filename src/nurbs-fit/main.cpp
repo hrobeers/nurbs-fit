@@ -4,6 +4,7 @@
 
 #include "nurbs-fit/main.hpp"
 #include "nurbs-fit/curvefit.hpp"
+#include "nurbs-fit/props.hpp"
 #include "hrlib/io/vertexio.hpp"
 
 using namespace nurbsfit;
@@ -75,6 +76,12 @@ int main(int argc, char *argv[])
 
 
     //
+    // Process cmd params
+    //
+    props p;
+
+
+    //
     // Run the application
     //
 
@@ -94,7 +101,7 @@ int main(int argc, char *argv[])
         if (vts.size() != 4)
           break;
 
-        auto fit = fit_qb(vts);
+        auto fit = fit_qb(vts,p);
 
         std::cout << "<g stroke-width=\".3\">" << std::endl;
 
