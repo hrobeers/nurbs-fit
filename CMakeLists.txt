@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 # Project settings
 project(NURBSfit)
 set(PROJECT_NAME "nurbs-fit")
-set(PROJECT_BRIEF "${PROJECT_NAME} is a tool for fitting NURBS curves and surfaces.")
+set(PROJECT_BRIEF "${PROJECT_NAME} is an experimental tool for fitting NURBS curves and surfaces.")
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin/)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib/)
 

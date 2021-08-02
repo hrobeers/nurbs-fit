@@ -83,16 +83,42 @@ int main(int argc, char *argv[])
       auto input = getInputStream(vm);
       std::istream* is = input.get();
 
-      vertex<2> vtx;
-      std::vector<vertex<2>> vts;
+      std::cout << "<svg>" << std::endl;
 
-      while (utf8::read_next_vertex<2>(*is, vtx))
-        vts.push_back(vtx);
+      while (!is->eof()) {
+        vertex<2> vtx;
+        std::vector<vertex<2>> vts;
 
-      auto fit = fit_qb(vts);
+        while (vts.size()<4 && utf8::read_next_vertex<2>(*is, vtx))
+          vts.push_back(vtx);
+        if (vts.size() != 4)
+          break;
 
-      for (auto v : fit)
-        std::cout << v[0] << " " << v[1] << std::endl;
+        auto fit = fit_qb(vts);
+
+        std::cout << "<g stroke-width=\".3\">" << std::endl;
+
+        std::cout << "<g fill=\"blue\" stroke=\"none\">" << std::endl;
+        for (auto v : vts)
+          std::cout << "<circle cx=\"" << v[0] << "\" cy=\"" << -v[1] << "\" r=\".5\" />" << std::endl;
+        std::cout << "</g>" << std::endl;
+
+        std::cout << "<g fill=\"red\" stroke=\"none\">" << std::endl;
+        std::cout << "<circle cx=\"" << fit[1][0] << "\" cy=\"" << -fit[1][1] << "\" r=\".5\" />" << std::endl;
+        std::cout << "</g>" << std::endl;
+
+        std::cout << "<g  fill=\"none\" stroke=\"black\">" << std::endl;
+        std::cout << "<path d=\"";
+        std::cout << "M" << fit[0][0] << " " << -fit[0][1];
+        std::cout << "Q" << fit[1][0] << " " << -fit[1][1];
+        std::cout << " " << fit[2][0] << " " << -fit[2][1];
+        std::cout << "\"/>" << std::endl;
+        std::cout << "</g>" << std::endl;
+
+        std::cout << "</g>" << std::endl;
+      }
+
+      std::cout << "</svg>" << std::endl;
     }
     else
     {
