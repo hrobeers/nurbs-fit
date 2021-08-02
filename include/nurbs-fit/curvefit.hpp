@@ -14,6 +14,7 @@ namespace nurbsfit
   std::vector<hrlib::vertex<2>> fit_qb(const std::vector<hrlib::vertex<2>> &target, double relax=0.3) {
     assert(target.size()==4); // TODO warn or switch to least squares?
 
+    const double init_relax = relax;
     const double TOL = 0.01;
 
     auto P0 = target[0];
@@ -115,6 +116,7 @@ namespace nurbsfit
       v = (x(1)-v)*relax + v;
       u = std::max(0., std::min(u, 1.));
       v = std::max(0., std::min(v, 1.));
+      relax = std::min(init_relax, relax*1.01); // carefully regenerate the relaxation
 
       Pc[0] = x(6);
       Pc[1] = x(7);
