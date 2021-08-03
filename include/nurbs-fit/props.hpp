@@ -10,6 +10,9 @@ namespace nurbsfit
     double relax       = 0.3;
     double tol         = 0.01;
     size_t max_it      = 1024;
+
+    // Export props
+    bool origin        = false;
   };
 }
 

@@ -23,6 +23,7 @@
 
 #include "nurbs-fit/main.hpp"
 #include "nurbs-fit/curvefit.hpp"
+#include "nurbs-fit/curveproc.hpp"
 #include "nurbs-fit/props.hpp"
 #include "hrlib/io/vertexio.hpp"
 
@@ -63,8 +64,9 @@ int main(int argc, char *argv[])
     //
     po::options_description curve_params("Curve options");
     curve_params.add_options()
-      ("type,t", "Type of curve to fit. [qb, cb]")
-      ("dimensions,d", "Nurber of dimensions. Currently only 2 is supported (option is ignored)")
+      //("type,t", "Type of curve to fit. [qb, cb]")
+      //("dimensions,d", "Nurber of dimensions. Currently only 2 is supported (option is ignored)")
+      ("origin,o", "Shifts and rotates the curve to have the middle at the origin with an horizontal tangent")
       ;
 
     //
@@ -98,6 +100,7 @@ int main(int argc, char *argv[])
     // Process cmd params
     //
     props p;
+    p.origin = vm.count("origin");
 
 
     //
@@ -125,16 +128,22 @@ int main(int argc, char *argv[])
 
         auto fit = fit_qb(vts,p);
 
+        if (p.origin)
+          // ceter on origin
+          fit = center_origin(fit);
+
         std::cout << "<g stroke-width=\".3\">" << std::endl;
 
-        std::cout << "<g fill=\"blue\" stroke=\"none\">" << std::endl;
-        for (auto v : vts)
-          std::cout << "<circle cx=\"" << v[0] << "\" cy=\"" << -v[1] << "\" r=\".5\" />" << std::endl;
-        std::cout << "</g>" << std::endl;
+        if (!p.origin) {
+          std::cout << "<g fill=\"blue\" stroke=\"none\">" << std::endl;
+          for (auto v : vts)
+            std::cout << "<circle cx=\"" << v[0] << "\" cy=\"" << -v[1] << "\" r=\".5\" />" << std::endl;
+          std::cout << "</g>" << std::endl;
 
-        std::cout << "<g fill=\"red\" stroke=\"none\">" << std::endl;
-        std::cout << "<circle cx=\"" << fit[1][0] << "\" cy=\"" << -fit[1][1] << "\" r=\".5\" />" << std::endl;
-        std::cout << "</g>" << std::endl;
+          std::cout << "<g fill=\"red\" stroke=\"none\">" << std::endl;
+          std::cout << "<circle cx=\"" << fit[1][0] << "\" cy=\"" << -fit[1][1] << "\" r=\".5\" />" << std::endl;
+          std::cout << "</g>" << std::endl;
+        }
 
         std::cout << "<g  fill=\"none\" stroke=\"black\">" << std::endl;
         std::cout << "<path d=\"";

@@ -26,7 +26,7 @@ if(CCache)
 endif()
 
 # Build flags
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(DEBUG_FLAGS "-g -O0 -Wall")
 set(RELEASE_FLAGS "-O3")
 
