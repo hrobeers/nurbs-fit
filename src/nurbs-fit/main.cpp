@@ -25,6 +25,8 @@
 #include "nurbs-fit/curvefit.hpp"
 #include "nurbs-fit/curveproc.hpp"
 #include "nurbs-fit/props.hpp"
+#include "nurbs-fit/colormap.hpp"
+
 #include "hrlib/io/vertexio.hpp"
 
 using namespace nurbsfit;
@@ -122,6 +124,7 @@ int main(int argc, char *argv[])
         inputs.back().push_back(vtx);
       }
 
+      size_t i=0;
       for (auto &vts : inputs) {
         if (vts.size() != 4)
           continue;
@@ -145,7 +148,7 @@ int main(int argc, char *argv[])
           std::cout << "</g>" << std::endl;
         }
 
-        std::cout << "<g  fill=\"none\" stroke=\"black\">" << std::endl;
+        std::cout << "<g  fill=\"none\" stroke=\"" << to_html(get_color(double(i++)/(inputs.size()-1))) << "\">" << std::endl;
         std::cout << "<path d=\"";
         std::cout << "M" << fit[0][0] << " " << -fit[0][1];
         std::cout << "Q" << fit[1][0] << " " << -fit[1][1];

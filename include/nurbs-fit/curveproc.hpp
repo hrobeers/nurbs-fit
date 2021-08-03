@@ -94,7 +94,7 @@ namespace nurbsfit
     double t_center = t_prec_arclen(f_curve, 0.5);
     auto p_center = f_curve(t_center);
 
-    // translate
+    // translate center to origin
     std::vector<hrlib::vertex<2>> to(curve.size());
     std::transform(curve.cbegin(), curve.cend(), to.begin(),
                    [&p_center](auto p) -> hrlib::vertex<2> { return { p[0]-p_center[0], p[1]-p_center[1] }; });
@@ -107,6 +107,11 @@ namespace nurbsfit
     std::vector<hrlib::vertex<2>> ro(curve.size());
     std::transform(to.cbegin(), to.cend(), ro.begin(),
                    [s,c](auto p) -> hrlib::vertex<2> { return { p[0]*c-p[1]*s, p[0]*s+p[1]*c }; });
+
+
+    // translate x coordinate back
+    std::transform(ro.cbegin(), ro.cend(), ro.begin(),
+                   [&p_center](auto p) -> hrlib::vertex<2> { return { p[0]+p_center[0], p[1] }; });
 
     return ro;
   }
