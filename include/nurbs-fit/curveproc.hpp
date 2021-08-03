@@ -47,6 +47,24 @@ namespace nurbsfit
       break;
     }
   }
+  inline
+  std::function<hrlib::vertex<2>(double)> to_deriv(const std::vector<hrlib::vertex<2>> &curve) {
+    switch (curve.size()) {
+    case 3:
+      // Quadratic Bezier: 2(1-t)(P1-P0) + 2t(P2-P1) = P'(t)
+      return [curve](double t) -> hrlib::vertex<2> { return {
+          2*(1-t)*(curve[1][0]-curve[0][0]) + 2*t*(curve[2][0]-curve[1][0]),
+          2*(1-t)*(curve[1][1]-curve[0][1]) + 2*t*(curve[2][1]-curve[1][1])
+        };};
+    case 4:
+      // TODO
+      assert(false);
+      break;
+    default:
+      assert(false);
+      break;
+    }
+  }
 
   inline
   double t_prec_arclen(const std::function<hrlib::vertex<2>(double)> &f_curve, double perc_acrlen) {
@@ -72,17 +90,25 @@ namespace nurbsfit
   inline
   std::vector<hrlib::vertex<2>> center_origin(const std::vector<hrlib::vertex<2>> &curve) {
     auto f_curve = to_func(curve);
+    auto f_deriv = to_deriv(curve);
     double t_center = t_prec_arclen(f_curve, 0.5);
     auto p_center = f_curve(t_center);
 
-    std::cerr << "t half: " << t_center << std::endl;
-    std::cerr << "p half: " << p_center[0] << " " << p_center[1] << std::endl;
-
-    std::vector<hrlib::vertex<2>> co(curve.size());
-    std::transform(curve.cbegin(), curve.cend(), co.begin(),
+    // translate
+    std::vector<hrlib::vertex<2>> to(curve.size());
+    std::transform(curve.cbegin(), curve.cend(), to.begin(),
                    [&p_center](auto p) -> hrlib::vertex<2> { return { p[0]-p_center[0], p[1]-p_center[1] }; });
 
-    return co;
+    // rotate
+    auto d = f_deriv(t_center);
+    auto a = std::atan(d[1]/d[0]);
+    auto s = std::sin(-a);
+    auto c = std::cos(-a);
+    std::vector<hrlib::vertex<2>> ro(curve.size());
+    std::transform(to.cbegin(), to.cend(), ro.begin(),
+                   [s,c](auto p) -> hrlib::vertex<2> { return { p[0]*c-p[1]*s, p[0]*s+p[1]*c }; });
+
+    return ro;
   }
 }
 
