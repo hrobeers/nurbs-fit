@@ -1,4 +1,6 @@
 #include <cstdlib>
+#include <vector>
+#include <list>
 
 #include "../version_autogen.hpp"
 
@@ -92,14 +94,17 @@ int main(int argc, char *argv[])
 
       std::cout << "<svg>" << std::endl;
 
-      while (!is->eof()) {
-        vertex<2> vtx;
-        std::vector<vertex<2>> vts;
+      std::list<std::vector<vertex<2>>> inputs;
+      vertex<2> vtx;
+      while (utf8::read_next_vertex<2>(*is, vtx)) {
+        if (vtx[0] == 0)
+          inputs.push_back({});
+        inputs.back().push_back(vtx);
+      }
 
-        while (vts.size()<4 && utf8::read_next_vertex<2>(*is, vtx))
-          vts.push_back(vtx);
+      for (auto &vts : inputs) {
         if (vts.size() != 4)
-          break;
+          continue;
 
         auto fit = fit_qb(vts,p);
 
