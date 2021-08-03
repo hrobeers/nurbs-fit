@@ -115,6 +115,26 @@ namespace nurbsfit
 
     return ro;
   }
+
+  inline
+  std::vector<hrlib::vertex<2>> to_cubic(const std::vector<hrlib::vertex<2>> &curve) {
+    switch (curve.size()) {
+    case 3:
+      {
+        std::vector<hrlib::vertex<2>> cubic(4);
+        cubic[0] = curve[0];
+        cubic[1] = { 1./3*(curve[0][0]+2.*curve[1][0]), 1./3*(curve[0][1]+2.*curve[1][1]) };
+        cubic[2] = { 1./3*(curve[2][0]+2.*curve[1][0]), 1./3*(curve[2][1]+2.*curve[1][1]) };
+        cubic[3] = curve[2];
+        return cubic;
+      }
+    case 4:
+      return curve;
+    default:
+      assert(false);
+      break;
+    }
+  }
 }
 
 #endif //NURBSFIT_CURVEPROC_HPP

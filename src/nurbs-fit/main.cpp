@@ -135,6 +135,9 @@ int main(int argc, char *argv[])
           // ceter on origin
           fit = center_origin(fit);
 
+        // Convert to cubic for more compatibility
+        fit = to_cubic(fit);
+
         std::cout << "<g stroke-width=\".3\">" << std::endl;
 
         if (!p.origin) {
@@ -151,8 +154,9 @@ int main(int argc, char *argv[])
         std::cout << "<g  fill=\"none\" stroke=\"" << to_html(get_color(double(i++)/(inputs.size()-1))) << "\">" << std::endl;
         std::cout << "<path d=\"";
         std::cout << "M" << fit[0][0] << " " << -fit[0][1];
-        std::cout << "Q" << fit[1][0] << " " << -fit[1][1];
+        std::cout << "C" << fit[1][0] << " " << -fit[1][1];
         std::cout << " " << fit[2][0] << " " << -fit[2][1];
+        std::cout << " " << fit[3][0] << " " << -fit[3][1];
         std::cout << "\"/>" << std::endl;
         std::cout << "</g>" << std::endl;
 
