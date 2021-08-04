@@ -22,6 +22,7 @@
 
 #include <cassert>
 
+#include "nurbs-fit/curveproc.hpp"
 #include "hrlib/io/vertexio.hpp"
 #include "invert-matrix.hpp"
 
@@ -266,8 +267,8 @@ namespace nurbsfit
     assert(P.size()==pcnt); // TODO warn or switch to least squares?
 
     // Hack to stop in time before exploding
-    // TODO re-evaluate the stop condition
-    const double init_relax = 1./props.max_it; // props.relax;
+    // TODO re-evaluate the initial relaxation
+    const double init_relax = 8./props.max_it; // props.relax;
     double relax = init_relax;
 
     // Bezier points
@@ -326,10 +327,13 @@ namespace nurbsfit
           r++;
         }
 
-      // Enforce Pc1x + Pc2x = P1x (extra equation)
+      // Enforce Pc1+Pc2 = P1+P2 (extra equation)
+      // Avoids a control point explosion
       A(r,3*ucnt) = 1;
       A(r,3*ucnt+Dim) = 1;
-      b(r) = P1[0];
+      A(r,3*ucnt+1) = 1;
+      A(r,3*ucnt+Dim+1) = 1;
+      b(r) = P0[0]+P0[1]+P1[0]+P1[1];
 
       // Solve
       decltype(A) Ainv(13,13);
@@ -354,12 +358,11 @@ namespace nurbsfit
       Pc[1] = { x(3*ucnt+Dim), x(3*ucnt+Dim+1) };
 
       // Check the residuals
-      // u, u^3, (1-u)^3, Pc1, Pc2
-      size_t in_tol = 0;
-      for (size_t i; i<ucnt; i++)
-        if (std::abs(u[i]-x(i))<props.tol)
-          in_tol++;
-      if (in_tol>=ucnt-1)
+      bool in_tol = true;
+      for (size_t i=0; i<ucnt; i++)
+        if (std::abs(u[i]-x(i))>props.tol)
+          in_tol = false;
+      if (in_tol)
         break;
     }
 

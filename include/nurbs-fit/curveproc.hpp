@@ -29,6 +29,18 @@ namespace bm = boost::math;
 
 namespace nurbsfit
 {
+  template<typename T>
+  double dist_sq(T v1, T v2) {
+    double ds = 0;
+    for (size_t i=0; i<v1.size(); i++)
+      ds += bm::pow<2>(v2[i]-v1[i]);
+    return ds;
+  }
+  template<typename T>
+  double dist(T v1, T v2) {
+    return std::sqrt(dist_sq(v1,v2));
+  }
+
   inline
   std::function<hrlib::vertex<2>(double)> to_func(const std::vector<hrlib::vertex<2>> &curve) {
     switch (curve.size()) {
