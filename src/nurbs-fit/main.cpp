@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     //
     po::options_description curve_params("Curve options");
     curve_params.add_options()
-      //("type,t", "Type of curve to fit. [qb, cb]")
+      ("type,t", po::value<std::string>(), "Type of curve to fit. [qb, cb]")
       //("dimensions,d", "Nurber of dimensions. Currently only 2 is supported (option is ignored)")
       ("origin,o", "Shifts and rotates the curve to have the middle at the origin with an horizontal tangent")
       ;
@@ -103,6 +103,9 @@ int main(int argc, char *argv[])
     //
     props p;
     p.origin = vm.count("origin");
+    if (vm.count("type"))
+      p.spline = vm["type"].as<std::string>()=="qb"? QB : CB;
+
 
 
     //
@@ -126,20 +129,14 @@ int main(int argc, char *argv[])
 
       size_t i=0;
       for (auto &vts : inputs) {
+
         std::vector<vertex<2>> fit;
-        switch (vts.size()) {
-        case 4:
-          fit = fit4_qb(vts,p);
-          break;
-        case 5:
-          fit = fit5_cb(vts,p);
-          break;
-        case 6:
-          fit = fit5_cb(vts,p);
-          break;
-        default:
+        if (vts.size()>4 && p.spline==CB)
+          fit = fit_cb(vts,p);
+        else if (vts.size()>3)
+          fit = fit_qb(vts,p);
+        else
           continue;
-        }
 
         if (p.origin)
           // ceter on origin

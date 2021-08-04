@@ -5,10 +5,15 @@
 
 namespace nurbsfit
 {
+  enum spline_t { QB, CB };
+
   struct props {
+    // Fit props
+    spline_t spline    = QB;
+
     // Solver props
-    double relax       = 0.3;
-    double tol         = 0.01;
+    //double relax       = 0.3;
+    double tol         = 0.001;
     size_t max_it      = 1024;
 
     // Export props
