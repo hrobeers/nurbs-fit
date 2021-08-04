@@ -129,10 +129,13 @@ int main(int argc, char *argv[])
         std::vector<vertex<2>> fit;
         switch (vts.size()) {
         case 4:
-          fit = fit_qb(vts,p);
+          fit = fit4_qb(vts,p);
+          break;
+        case 5:
+          fit = fit5_cb(vts,p);
           break;
         case 6:
-          fit = fit_cb(vts,p);
+          fit = fit6_cb(vts,p);
           break;
         default:
           continue;

@@ -31,7 +31,7 @@ namespace bm = boost::math;
 namespace nurbsfit
 {
   template<typename Tprops>
-  std::vector<hrlib::vertex<2>> fit_qb(const std::vector<hrlib::vertex<2>> &P, const Tprops &props) {
+  std::vector<hrlib::vertex<2>> fit4_qb(const std::vector<hrlib::vertex<2>> &P, const Tprops &props) {
     typedef hrlib::vertex<2> vertex;
 
     const size_t Dim = 2;
@@ -142,7 +142,7 @@ namespace nurbsfit
   }
 
   template<typename Tprops>
-  std::vector<hrlib::vertex<2>> fit_cb(const std::vector<hrlib::vertex<2>> &P, const Tprops &props) {
+  std::vector<hrlib::vertex<2>> fit6_cb(const std::vector<hrlib::vertex<2>> &P, const Tprops &props) {
     typedef hrlib::vertex<2> vertex;
 
     const size_t Dim = 2;
@@ -177,7 +177,6 @@ namespace nurbsfit
       vector<double> b = zero_vector<double>(16);
 
       size_t r = 0;
-      size_t c = 0;
 
       // linearization of t^3 around u
       // Taylor: t^3 ~ u^3 + 3u^2 (t-u)
@@ -216,6 +215,124 @@ namespace nurbsfit
 
       // Solve
       decltype(A) Ainv(16,16);
+      if (invert(A, Ainv)) {
+        u_prev = u;
+      } else {
+        // We need to relax more
+        relax *= 0.75;
+        u = u_prev;
+        continue;
+      }
+
+      auto x = prod(Ainv,b);
+
+      for (size_t i=0; i<ucnt; i++) {
+        u[i] = (x(i)-u[i])*relax + u[i];
+        u[i] = std::max(0., std::min(u[i], 1.));
+      }
+      relax = std::min(init_relax, relax*1.01); // carefully regenerate the relaxation
+
+      Pc[0] = { x(3*ucnt), x(3*ucnt+1) };
+      Pc[1] = { x(3*ucnt+Dim), x(3*ucnt+Dim+1) };
+
+      // Check the residuals
+      // u, u^3, (1-u)^3, Pc1, Pc2
+      size_t in_tol = 0;
+      for (size_t i; i<ucnt; i++)
+        if (std::abs(u[i]-x(i))<props.tol)
+          in_tol++;
+      if (in_tol>=ucnt-1)
+        break;
+    }
+
+    if (it>props.max_it)
+      std::cerr << "[NOT CONVERGED] ";
+    else
+      std::cerr << "[SUCCESS] ";
+    std::cerr << "iterations: " << it << std::endl;
+
+    return {P0, Pc[0], Pc[1], P1};
+  }
+
+  template<typename Tprops>
+  std::vector<hrlib::vertex<2>> fit5_cb(const std::vector<hrlib::vertex<2>> &P, const Tprops &props) {
+    typedef hrlib::vertex<2> vertex;
+
+    const size_t Dim = 2;
+    const size_t pcnt = 5;
+    const size_t ucnt = pcnt-2;
+    const size_t ccnt = 2;
+
+    assert(P.size()==pcnt); // TODO warn or switch to least squares?
+
+    // Hack to stop in time before exploding
+    // TODO re-evaluate the stop condition
+    const double init_relax = 1./props.max_it; // props.relax;
+    double relax = init_relax;
+
+    // Bezier points
+    auto P0 = P.front();
+    auto P1 = P.back();
+    std::array<vertex, ccnt> Pc;
+
+    std::array<double,ucnt> u = {.25,.50,.75};
+    std::array<double,ucnt> u_prev = u;
+
+    size_t it = 0;
+    while (it++<props.max_it) {
+      using namespace boost::numeric::ublas;
+      // Quadratic Bezier: (1-t)^2 P0 + 2t(1-t) Pc + u^2 P1 = P(t)
+
+      // Ax=b
+      // Order of x variables:
+      // u, u^3, (1-u)^3, Pc1, Pc2 -> 3+3+3+2+2 = 13
+      matrix<double> A = zero_matrix<double>(13, 13);
+      vector<double> b = zero_vector<double>(13);
+
+      size_t r = 0;
+
+      // linearization of t^3 around u
+      // Taylor: t^3 ~ u^3 + 3u^2 (t-u)
+      // Matrix: 3u^2*t -1*t^3 = 2u^3
+
+      // t^3
+      for (size_t i=0; i<ucnt; i++) {
+        A(r,i) = 3*bm::pow<2>(u[i]);
+        A(r,i+ucnt) = -1;
+        b(r) = 2*bm::pow<3>(u[i]);
+        r++;
+      }
+
+      // linearization of (1-t)^3 around u
+      // Taylor: (1-t)^3 ~ (1-u)^3 -3(1-u)^2(t-u)
+      // Matrix: (3u^2-6u+3)*t +1*(1-t)^3 = 2u^3-3u^2+1
+
+      // (1-t)^3
+      for (size_t i=0; i<ucnt; i++) {
+        A(r,i) = 3*bm::pow<2>(u[i])-6*u[i]+3;
+        A(r,i+2*ucnt) = 1;
+        b(r) = 2*bm::pow<3>(u[i]) - 3*bm::pow<2>(u[i]) + 1;
+        r++;
+      }
+
+      // Pu equations
+      for (size_t i=0; i<ucnt; i++)
+        for (size_t d=0; d<Dim; d++) {
+          A(r,ucnt+i) = P1[d];
+          A(r,2*ucnt+i) = P0[d];
+          A(r,3*ucnt+d) = 3*bm::pow<2>(1-u[i])*u[i]; // Pc1
+          A(r,3*ucnt+Dim+d) = 3*(1-u[i])*bm::pow<2>(u[i]); // Pc2
+          b(r) = P[i+1][d];
+          r++;
+        }
+
+      // Enforce Pc1x + Pc2x = P1x (extra equation)
+      A(r,3*ucnt) = 1;
+      A(r,3*ucnt+Dim) = 1;
+      b(r) = P1[0];
+
+      // Solve
+      decltype(A) Ainv(13,13);
       if (invert(A, Ainv)) {
         u_prev = u;
       } else {
