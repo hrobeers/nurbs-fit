@@ -55,7 +55,6 @@ namespace nurbsfit
     size_t it = 0;
     while (it++<props.max_it) {
       using namespace boost::numeric::ublas;
-      // Quadratic Bezier: (1-t)^2 P0 + 2t(1-t) Pc + u^2 P1 = P(t)
 
       // Ax=b
       // Order of x variables:
@@ -169,7 +168,6 @@ namespace nurbsfit
     size_t it = 0;
     while (it++<props.max_it) {
       using namespace boost::numeric::ublas;
-      // Quadratic Bezier: (1-t)^2 P0 + 2t(1-t) Pc + u^2 P1 = P(t)
 
       // Ax=b
       // Order of x variables:
@@ -266,7 +264,11 @@ namespace nurbsfit
 
     assert(pcnt>=5);
 
+    // Order of rows:
+    // P-equations, linearizations, extra equation
     size_t rows = Dim*ucnt + 2*ucnt + 1;
+    // Order of cols:
+    // u, u^3, (1-u)^3, Pc1, Pc2
     size_t cols = 3*ucnt + 2*Dim;
 
     // Hack to stop in time before exploding
@@ -287,11 +289,8 @@ namespace nurbsfit
     size_t it = 0;
     while (it++<props.max_it) {
       using namespace boost::numeric::ublas;
-      // Quadratic Bezier: (1-t)^2 P0 + 2t(1-t) Pc + u^2 P1 = P(t)
 
       // Ax=b
-      // Order of x variables:
-      // u, u^3, (1-u)^3, Pc1, Pc2 -> 3+3+3+2+2 = 13
       matrix<double> A = zero_matrix<double>(rows, cols);
       vector<double> b = zero_vector<double>(rows);
 
@@ -332,7 +331,7 @@ namespace nurbsfit
           r++;
         }
 
-      // Enforce Pc1+Pc2 = P1+P2 (extra equation)
+      // Enforce Pc1+Pc2 = P0+P1 (extra equation)
       // Avoids a control point explosion
       A(r,3*ucnt) = 1;
       A(r,3*ucnt+Dim) = 1;
