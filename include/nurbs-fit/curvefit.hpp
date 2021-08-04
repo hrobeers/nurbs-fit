@@ -260,11 +260,14 @@ namespace nurbsfit
     typedef hrlib::vertex<2> vertex;
 
     const size_t Dim = 2;
-    const size_t pcnt = 5;
-    const size_t ucnt = pcnt-2;
+    size_t pcnt = P.size();
+    size_t ucnt = pcnt-2;
     const size_t ccnt = 2;
 
-    assert(P.size()==pcnt); // TODO warn or switch to least squares?
+    assert(pcnt>=5);
+
+    size_t rows = Dim*ucnt + 2*ucnt + 1;
+    size_t cols = 3*ucnt + 2*Dim;
 
     // Hack to stop in time before exploding
     // TODO re-evaluate the initial relaxation
@@ -276,8 +279,10 @@ namespace nurbsfit
     auto P1 = P.back();
     std::array<vertex, ccnt> Pc;
 
-    std::array<double,ucnt> u = {.25,.50,.75};
-    std::array<double,ucnt> u_prev = u;
+    std::vector<double> u(ucnt);
+    for (size_t i=0; i<ucnt; i++)
+      u[i] = (i+1.)/pcnt;
+    std::vector<double> u_prev = u;
 
     size_t it = 0;
     while (it++<props.max_it) {
@@ -287,8 +292,8 @@ namespace nurbsfit
       // Ax=b
       // Order of x variables:
       // u, u^3, (1-u)^3, Pc1, Pc2 -> 3+3+3+2+2 = 13
-      matrix<double> A = zero_matrix<double>(13, 13);
-      vector<double> b = zero_vector<double>(13);
+      matrix<double> A = zero_matrix<double>(rows, cols);
+      vector<double> b = zero_vector<double>(rows);
 
       size_t r = 0;
 
@@ -335,8 +340,12 @@ namespace nurbsfit
       A(r,3*ucnt+Dim+1) = 1;
       b(r) = P0[0]+P0[1]+P1[0]+P1[1];
 
+      decltype(A) At = identity_matrix<double>(rows);
+      if (rows!=cols) At = trans(A);
+
       // Solve
-      decltype(A) Ainv(13,13);
+      decltype(A) Ainv(cols,cols);
+      A = prod(At,A);
       if (invert(A, Ainv)) {
         u_prev = u;
       } else {
@@ -346,6 +355,7 @@ namespace nurbsfit
         continue;
       }
 
+      Ainv = prod(Ainv,At);
       auto x = prod(Ainv,b);
 
       for (size_t i=0; i<ucnt; i++) {

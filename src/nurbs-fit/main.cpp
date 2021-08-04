@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
           fit = fit5_cb(vts,p);
           break;
         case 6:
-          fit = fit6_cb(vts,p);
+          fit = fit5_cb(vts,p);
           break;
         default:
           continue;
