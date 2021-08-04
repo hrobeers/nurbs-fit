@@ -21,7 +21,7 @@
 #define NURBSFIT_CURVEPROC_HPP
 
 #include <functional>
-#include <boost/math/special_functions/pow.hpp> 
+#include <boost/math/special_functions/pow.hpp>
 
 #include "hrlib/io/vertexio.hpp"
 
@@ -33,15 +33,17 @@ namespace nurbsfit
   std::function<hrlib::vertex<2>(double)> to_func(const std::vector<hrlib::vertex<2>> &curve) {
     switch (curve.size()) {
     case 3:
-      // Quadratic Bezier: (1-t)^2 P0 + 2t(1-t) Pc + u^2 P1 = P(t)
+      // Quadratic Bezier: (1-t)^2 P0 + 2t(1-t) Pc + t^2 P1 = P(t)
       return [curve](double t) -> hrlib::vertex<2> { return {
           bm::pow<2>(1-t)*curve[0][0] + 2*t*(1-t)*curve[1][0] + bm::pow<2>(t)*curve[2][0],
           bm::pow<2>(1-t)*curve[0][1] + 2*t*(1-t)*curve[1][1] + bm::pow<2>(t)*curve[2][1]
         };};
     case 4:
-      // TODO
-      assert(false);
-      break;
+      // Cubic Bezier: (1-t)^3 P0 + 3t(1-t)^2 Pc1 + 3(1-t)t^2 Pc2 + t^3 P1 = P(t)
+      return [curve](double t) -> hrlib::vertex<2> { return {
+          bm::pow<3>(1-t)*curve[0][0] + 3*t*bm::pow<2>(1-t)*curve[1][0] + 3*bm::pow<2>(t)*(1-t)*curve[2][0] + bm::pow<3>(t)*curve[3][0],
+          bm::pow<3>(1-t)*curve[0][1] + 3*t*bm::pow<2>(1-t)*curve[1][1] + 3*bm::pow<2>(t)*(1-t)*curve[2][1] + bm::pow<3>(t)*curve[3][1]
+        };};
     default:
       assert(false);
       break;
@@ -57,9 +59,11 @@ namespace nurbsfit
           2*(1-t)*(curve[1][1]-curve[0][1]) + 2*t*(curve[2][1]-curve[1][1])
         };};
     case 4:
-      // TODO
-      assert(false);
-      break;
+      // Cubic Bezier: 3(1-t)^2(P1-P0) + 6(1-t)t(P2-P1) + 3t^2(P3-P2) = P'(t)
+      return [curve](double t) -> hrlib::vertex<2> { return {
+          3*bm::pow<2>(1-t)*(curve[1][0]-curve[0][0]) + 6*(1-t)*t*(curve[2][0]-curve[1][0]) + 3*bm::pow<2>(t)*(curve[3][0]-curve[2][0]),
+          3*bm::pow<2>(1-t)*(curve[1][1]-curve[0][1]) + 6*(1-t)*t*(curve[2][1]-curve[1][1]) + 3*bm::pow<2>(t)*(curve[3][1]-curve[2][1]),
+        };};
     default:
       assert(false);
       break;

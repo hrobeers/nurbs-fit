@@ -126,10 +126,17 @@ int main(int argc, char *argv[])
 
       size_t i=0;
       for (auto &vts : inputs) {
-        if (vts.size() != 4)
+        std::vector<vertex<2>> fit;
+        switch (vts.size()) {
+        case 4:
+          fit = fit_qb(vts,p);
+          break;
+        case 6:
+          fit = fit_cb(vts,p);
+          break;
+        default:
           continue;
-
-        auto fit = fit_qb(vts,p);
+        }
 
         if (p.origin)
           // ceter on origin
@@ -148,10 +155,11 @@ int main(int argc, char *argv[])
 
           std::cout << "<g fill=\"red\" stroke=\"none\">" << std::endl;
           std::cout << "<circle cx=\"" << fit[1][0] << "\" cy=\"" << -fit[1][1] << "\" r=\".5\" />" << std::endl;
+          std::cout << "<circle cx=\"" << fit[2][0] << "\" cy=\"" << -fit[2][1] << "\" r=\".5\" />" << std::endl;
           std::cout << "</g>" << std::endl;
         }
 
-        std::cout << "<g  fill=\"none\" stroke=\"" << to_html(get_color(double(i++)/(inputs.size()-1))) << "\">" << std::endl;
+        std::cout << "<g fill=\"none\" stroke=\"" << to_html(get_color(double(i++)/(inputs.size()-1))) << "\" opacity=\"0.5\">" << std::endl;
         std::cout << "<path d=\"";
         std::cout << "M" << fit[0][0] << " " << -fit[0][1];
         std::cout << "C" << fit[1][0] << " " << -fit[1][1];
