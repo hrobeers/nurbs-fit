@@ -43,8 +43,8 @@ namespace nurbsfit
     assert(pcnt>=4);
 
     // Order of rows:
-    // P-equations, linearizations, extra equation
-    size_t rows = Dim*ucnt + 2*ucnt + 1;
+    // P-equations, linearizations
+    size_t rows = Dim*ucnt + 2*ucnt;
     // Order of cols:
     // u, u^3, (1-u)^3, Pc
     size_t cols = 3*ucnt + ccnt*Dim;
