@@ -226,13 +226,11 @@ namespace nurbsfit
           r++;
         }
 
-      // Enforce Pc1+Pc2 = P0+P1 (extra equation)
+      // Enforce Pc1x+Pc2x = P0x+P1x (extra equation)
       // Avoids a control point explosion
       A(r,3*ucnt) = 1;
       A(r,3*ucnt+Dim) = 1;
-      A(r,3*ucnt+1) = 1;
-      A(r,3*ucnt+Dim+1) = 1;
-      b(r) = P0[0]+P0[1]+P1[0]+P1[1];
+      b(r) = P0[0]+P1[0];
 
       decltype(A) At = identity_matrix<double>(rows);
       if (rows!=cols) At = trans(A);
