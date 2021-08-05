@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
       std::list<std::vector<vertex<2>>> inputs;
       vertex<2> vtx;
       while (utf8::read_next_vertex<2>(*is, vtx)) {
-        if (vtx[0] == 0)
+        if (inputs.empty() || vtx[0] == 0)
           inputs.push_back({});
         inputs.back().push_back(vtx);
       }

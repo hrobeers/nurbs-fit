@@ -9,7 +9,7 @@ namespace nurbsfit
 
   struct props {
     // Fit props
-    spline_t spline    = QB;
+    spline_t spline    = CB;
 
     // Solver props
     //double relax       = 0.3;
