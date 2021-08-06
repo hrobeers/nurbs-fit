@@ -12,7 +12,7 @@ namespace nurbsfit
     spline_t spline    = CB;
 
     // Solver props
-    //double relax       = 0.3;
+    double relax       = 0.05;
     double tol         = 0.001;
     size_t max_it      = 1024;
 
