@@ -21,6 +21,7 @@
 #define NURBSFIT_CURVEFIT_HPP
 
 #include <cassert>
+#include <list>
 
 #include "nurbs-fit/curveproc.hpp"
 #include "hrlib/io/vertexio.hpp"
@@ -159,10 +160,6 @@ namespace nurbsfit
 
     assert(pcnt>=5);
 
-    // Order of rows:
-    // P-equations, linearizations, extra equation
-    // TODO build matrix and determine size after assembling the list of rows
-    size_t rows = Dim*ucnt + 2*ucnt + 1;
     // Order of cols:
     // u, u^3, (1-u)^3, Pc1, Pc2
     size_t cols = 3*ucnt + ccnt*Dim;
@@ -186,11 +183,8 @@ namespace nurbsfit
     while (it++<props.max_it) {
       using namespace boost::numeric::ublas;
 
-      // Ax=b
-      matrix<double> A = zero_matrix<double>(rows, cols);
-      vector<double> b = zero_vector<double>(rows);
-
-      size_t r = 0;
+      std::list<std::vector<double>> vA;
+      std::vector<double> vb;
 
       // linearization of t^3 around u
       // Taylor: t^3 ~ u^3 + 3u^2 (t-u)
@@ -198,10 +192,11 @@ namespace nurbsfit
 
       // t^3
       for (size_t i=0; i<ucnt; i++) {
-        A(r,i) = 3*bm::pow<2>(u[i]);
-        A(r,i+ucnt) = -1;
-        b(r) = 2*bm::pow<3>(u[i]);
-        r++;
+        std::vector<double> a(cols, 0);
+        a[i] = 3*bm::pow<2>(u[i]);
+        a[i+ucnt] = -1;
+        vb.push_back(2*bm::pow<3>(u[i]));
+        vA.push_back(std::move(a));
       }
 
       // linearization of (1-t)^3 around u
@@ -210,29 +205,34 @@ namespace nurbsfit
 
       // (1-t)^3
       for (size_t i=0; i<ucnt; i++) {
-        A(r,i) = 3*bm::pow<2>(u[i])-6*u[i]+3;
-        A(r,i+2*ucnt) = 1;
-        b(r) = 2*bm::pow<3>(u[i]) - 3*bm::pow<2>(u[i]) + 1;
-        r++;
+        std::vector<double> a(cols, 0);
+        a[i] = 3*bm::pow<2>(u[i])-6*u[i]+3;
+        a[i+2*ucnt] = 1;
+        vb.push_back(2*bm::pow<3>(u[i]) - 3*bm::pow<2>(u[i]) + 1);
+        vA.push_back(std::move(a));
       }
 
       // Pu equations
       for (size_t i=0; i<ucnt; i++)
         for (size_t d=0; d<Dim; d++) {
-          A(r,ucnt+i) = P1[d];
-          A(r,2*ucnt+i) = P0[d];
-          A(r,3*ucnt+d) = 3*bm::pow<2>(1-u[i])*u[i]; // Pc1
-          A(r,3*ucnt+Dim+d) = 3*(1-u[i])*bm::pow<2>(u[i]); // Pc2
-          b(r) = P[i+1][d];
-          r++;
+          std::vector<double> a(cols, 0);
+          a[ucnt+i] = P1[d];
+          a[2*ucnt+i] = P0[d];
+          a[3*ucnt+d] = 3*bm::pow<2>(1-u[i])*u[i]; // Pc1
+          a[3*ucnt+Dim+d] = 3*(1-u[i])*bm::pow<2>(u[i]); // Pc2
+          vb.push_back(P[i+1][d]);
+          vA.push_back(std::move(a));
         }
 
       // Enforce Pc1x+Pc2x = P0x+P1x (extra equation)
       // Improves stability when X as main axis
-      A(r,3*ucnt) = 1;
-      A(r,3*ucnt+Dim) = 1;
-      b(r) = P0[0]+P1[0];
-      r++;
+      {
+        std::vector<double> a(cols, 0);
+        a[3*ucnt] = 1;
+        a[3*ucnt+Dim] = 1;
+        vb.push_back(P0[0]+P1[0]);
+        vA.push_back(std::move(a));
+      }
       /*
       // Sets the last point's tangent vertical
       A(r,3*ucnt+Dim) = 1;
@@ -244,6 +244,36 @@ namespace nurbsfit
       b(r) = P1[1]+P0[0];
       r++;
       */
+      /*
+      // Fix tangents
+      {
+        std::vector<double> a(cols, 0);
+        double f0 = (P[1][1]-P[0][1])/(P[1][0]-P[0][0]+P[1][1]-P[0][1]); // f*dX = (1-f)*dY
+        a[3*ucnt] = f0;
+        a[3*ucnt+1] = -(1-f0);
+        vb.push_back(f0*P0[0]-(1-f0)*P0[1]);
+        vA.push_back(std::move(a));
+      }
+      {
+        std::vector<double> a(cols, 0);
+        double f1 = (P[ucnt][1]-P[ucnt+1][1])/(P[ucnt][0]-P[ucnt+1][0]+P[ucnt][1]-P[ucnt+1][1]); // f = y/x
+        a[3*ucnt+Dim] = f1;
+        a[3*ucnt+Dim+1] = -(1-f1);
+        vb.push_back(f1*P1[0]-(1-f1)*P1[1]);
+        vA.push_back(std::move(a));
+      }
+      */
+
+      // Ax=b
+      size_t rows = vA.size();
+      matrix<double> A = matrix<double>(rows, cols);
+      vector<double> b = vector<double>(rows);
+      size_t ri=0;
+      for (auto it=vA.cbegin(); it!=vA.cend(); ++it, ++ri) {
+        b(ri) = vb[ri];
+        for (size_t ci=0; ci<cols; ci++)
+          A(ri,ci) = (*it)[ci];
+      }
 
       decltype(A) At = identity_matrix<double>(rows);
       if (rows!=cols) At = trans(A);
