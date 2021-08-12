@@ -258,6 +258,25 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
         vb.push_back(P0[0]+P1[0]);
         vA.push_back(std::move(a));
       }
+      if (ucnt > 6) {
+        // Fix tangents
+        {
+          std::vector<double> a(cols, 0);
+          double f0 = (P[1][1]-P[0][1])/(P[1][0]-P[0][0]+P[1][1]-P[0][1]); // f*dX = (1-f)*dY
+          a[3*ucnt] = f0;
+          a[3*ucnt+1] = -(1-f0);
+          vb.push_back(f0*P0[0]-(1-f0)*P0[1]);
+          vA.push_back(std::move(a));
+        }
+        {
+          std::vector<double> a(cols, 0);
+          double f1 = (P[ucnt][1]-P[ucnt+1][1])/(P[ucnt][0]-P[ucnt+1][0]+P[ucnt][1]-P[ucnt+1][1]); // f = y/x
+          a[3*ucnt+Dim] = f1;
+          a[3*ucnt+Dim+1] = -(1-f1);
+          vb.push_back(f1*P1[0]-(1-f1)*P1[1]);
+          vA.push_back(std::move(a));
+        }
+      }
       /*
       // Sets the last point's tangent vertical
       A(r,3*ucnt+Dim) = 1;
@@ -268,25 +287,6 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
       A(r,3*ucnt+Dim+1) = 5;
       b(r) = P1[1]+P0[0];
       r++;
-      */
-      /*
-      // Fix tangents
-      {
-        std::vector<double> a(cols, 0);
-        double f0 = (P[1][1]-P[0][1])/(P[1][0]-P[0][0]+P[1][1]-P[0][1]); // f*dX = (1-f)*dY
-        a[3*ucnt] = f0;
-        a[3*ucnt+1] = -(1-f0);
-        vb.push_back(f0*P0[0]-(1-f0)*P0[1]);
-        vA.push_back(std::move(a));
-      }
-      {
-        std::vector<double> a(cols, 0);
-        double f1 = (P[ucnt][1]-P[ucnt+1][1])/(P[ucnt][0]-P[ucnt+1][0]+P[ucnt][1]-P[ucnt+1][1]); // f = y/x
-        a[3*ucnt+Dim] = f1;
-        a[3*ucnt+Dim+1] = -(1-f1);
-        vb.push_back(f1*P1[0]-(1-f1)*P1[1]);
-        vA.push_back(std::move(a));
-      }
       */
     };
 

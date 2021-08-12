@@ -55,33 +55,38 @@ namespace hrlib
     }
 
     template<int Dim>
-    std::istream& read_next_vertex_line(std::istream& str, vertex<Dim>& v)
+    std::istream& read_next_vertex_line(std::istream& str, vertex<Dim>& v, ssize_t& skip)
     {
+      skip = -1;
       while (str.peek()!=EOF) {
-      // find next line containing floats
-      std::string line;
-      do
-        {
+        // find next line containing floats
+        std::string line;
+        do {
           getline_safe(str, line);
+          skip++;
         } while(str.peek()!=EOF && !is_floats(line));
 
-      // split line by delimiters
-      int i = 0;
-      size_t prev = 0;
-      while (true)
-        {
+        // split line by delimiters
+        int i = 0;
+        size_t prev = 0;
+        while (true) {
           auto pos = line.find_first_of(delimiters, prev);
-          if (pos > prev+1)
+          if ((prev==0 && pos==1) || pos>prev+2)
             std::istringstream(line.substr(prev, pos-prev)) >> v[i++];
           prev = pos+1;
           if (i==Dim || pos==std::string::npos)
             break;
         }
 
-      if (i>=Dim)
-        break;
+        if (i>=Dim)
+          break;
       }
       return str;
+    }
+    template<int Dim>
+    std::istream& read_next_vertex_line(std::istream& str, vertex<Dim>& v) {
+      size_t skip;
+      return read_next_vertex_line(str, v, skip);
     }
 
     template<int Dim>

@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
       ("type,t", po::value<std::string>(), "Type of curve to fit. [qb, cb]")
       //("dimensions,d", "Nurber of dimensions. Currently only 2 is supported (option is ignored)")
       ("origin,o", "Shifts and rotates the curve to have the middle at the origin with an horizontal tangent")
+      ("scale,s", po::value<double>(), "Scale factor on input data useful for better plotting")
       ;
 
     //
@@ -105,6 +106,7 @@ int main(int argc, char *argv[])
     p.origin = vm.count("origin");
     if (vm.count("type"))
       p.spline = vm["type"].as<std::string>()=="qb"? QB : CB;
+    double scale = vm.count("scale")? vm["scale"].as<double>() : 1;
 
 
 
@@ -121,10 +123,11 @@ int main(int argc, char *argv[])
 
       std::list<std::vector<vertex<2>>> inputs;
       vertex<2> vtx;
-      while (utf8::read_next_vertex<2>(*is, vtx)) {
-        if (inputs.empty() || vtx[0] == 0)
+      ssize_t skip;
+      while (utf8::read_next_vertex_line<2>(*is, vtx, skip)) {
+        if (inputs.empty() || skip)
           inputs.push_back({});
-        inputs.back().push_back(vtx);
+        inputs.back().push_back({vtx[0]*scale, vtx[1]*scale});
       }
 
       size_t i=0;
@@ -145,17 +148,17 @@ int main(int argc, char *argv[])
         // Convert to cubic for more compatibility
         fit = to_cubic(fit);
 
-        std::cout << "<g stroke-width=\".3\">" << std::endl;
+        std::cout << "<g stroke-width=\"2\">" << std::endl;
 
         if (!p.origin) {
           std::cout << "<g fill=\"blue\" stroke=\"none\">" << std::endl;
           for (auto v : vts)
-            std::cout << "<circle cx=\"" << v[0] << "\" cy=\"" << -v[1] << "\" r=\".5\" />" << std::endl;
+            std::cout << "<circle cx=\"" << v[0] << "\" cy=\"" << -v[1] << "\" r=\"2\" />" << std::endl;
           std::cout << "</g>" << std::endl;
 
           std::cout << "<g fill=\"red\" stroke=\"none\">" << std::endl;
-          std::cout << "<circle cx=\"" << fit[1][0] << "\" cy=\"" << -fit[1][1] << "\" r=\".5\" />" << std::endl;
-          std::cout << "<circle cx=\"" << fit[2][0] << "\" cy=\"" << -fit[2][1] << "\" r=\".5\" />" << std::endl;
+          std::cout << "<circle cx=\"" << fit[1][0] << "\" cy=\"" << -fit[1][1] << "\" r=\"2\" />" << std::endl;
+          std::cout << "<circle cx=\"" << fit[2][0] << "\" cy=\"" << -fit[2][1] << "\" r=\"2\" />" << std::endl;
           std::cout << "</g>" << std::endl;
         }
 
