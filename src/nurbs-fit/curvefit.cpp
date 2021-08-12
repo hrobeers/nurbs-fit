@@ -192,6 +192,7 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_qb(const std::vector<hrlib::vertex<2
 }
 
 std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2>> &P,
+                                               std::optional<std::array<double,2>> tangents,
                                                double relax, double tol, size_t max_it) {
     typedef hrlib::vertex<2> vertex;
 
@@ -207,7 +208,7 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
     size_t cols = 3*ucnt + ccnt*Dim;
 
 
-    f_Ab fAb = [ucnt,cols,Dim,&P](auto u, auto &vA, auto &vb) {
+    f_Ab fAb = [ucnt,cols,Dim,tangents,&P](auto u, auto &vA, auto &vb) {
       auto P0 = P.front();
       auto P1 = P.back();
 
@@ -249,20 +250,25 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
           vA.push_back(std::move(a));
         }
 
-      // Enforce Pc1x+Pc2x = P0x+P1x (extra equation)
-      // Improves stability when X as main axis
-      {
-        std::vector<double> a(cols, 0);
-        a[3*ucnt] = 1;
-        a[3*ucnt+Dim] = 1;
-        vb.push_back(P0[0]+P1[0]);
-        vA.push_back(std::move(a));
+      if (ucnt < 8 && !tangents) {
+        // Enforce Pc1x+Pc2x = P0x+P1x (extra equation)
+        // Improves stability when X as main axis
+        {
+          std::vector<double> a(cols, 0);
+          a[3*ucnt] = 1;
+          a[3*ucnt+Dim] = 1;
+          vb.push_back(P0[0]+P1[0]);
+          vA.push_back(std::move(a));
+        }
       }
-      if (ucnt > 6) {
+      if (ucnt >= 8 || tangents) {
         // Fix tangents
         {
           std::vector<double> a(cols, 0);
-          double f0 = (P[1][1]-P[0][1])/(P[1][0]-P[0][0]+P[1][1]-P[0][1]); // f*dX = (1-f)*dY
+          // f*dX = (1-f)*dY
+          double f0 = (!tangents || std::isnan((*tangents)[0]))?
+            (P[1][1]-P[0][1])/(P[1][0]-P[0][0]+P[1][1]-P[0][1]) :
+            std::sin((*tangents)[0])/(std::sin((*tangents)[0])+std::cos((*tangents)[0]));
           a[3*ucnt] = f0;
           a[3*ucnt+1] = -(1-f0);
           vb.push_back(f0*P0[0]-(1-f0)*P0[1]);
@@ -270,7 +276,10 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
         }
         {
           std::vector<double> a(cols, 0);
-          double f1 = (P[ucnt][1]-P[ucnt+1][1])/(P[ucnt][0]-P[ucnt+1][0]+P[ucnt][1]-P[ucnt+1][1]); // f = y/x
+          // f*dX = (1-f)*dY
+          double f1 = (!tangents || std::isnan((*tangents)[1]))?
+            (P[ucnt][1]-P[ucnt+1][1])/(P[ucnt][0]-P[ucnt+1][0]+P[ucnt][1]-P[ucnt+1][1]) :
+            std::sin((*tangents)[1])/(std::sin((*tangents)[1])+std::cos((*tangents)[1]));
           a[3*ucnt+Dim] = f1;
           a[3*ucnt+Dim+1] = -(1-f1);
           vb.push_back(f1*P1[0]-(1-f1)*P1[1]);

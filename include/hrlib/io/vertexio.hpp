@@ -71,7 +71,7 @@ namespace hrlib
         size_t prev = 0;
         while (true) {
           auto pos = line.find_first_of(delimiters, prev);
-          if ((prev==0 && pos==1) || pos>prev+2)
+          if ((prev==0 && pos==1) || pos>prev+1)
             std::istringstream(line.substr(prev, pos-prev)) >> v[i++];
           prev = pos+1;
           if (i==Dim || pos==std::string::npos)

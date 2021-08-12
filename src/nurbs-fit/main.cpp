@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
     po::options_description curve_params("Curve options");
     curve_params.add_options()
       ("type,t", po::value<std::string>(), "Type of curve to fit. [qb, cb]")
+      ("constraint,c", po::value<std::vector<std::string>>()->multitoken(), "Control point constraints")
       //("dimensions,d", "Nurber of dimensions. Currently only 2 is supported (option is ignored)")
       ("origin,o", "Shifts and rotates the curve to have the middle at the origin with an horizontal tangent")
       ("scale,s", po::value<double>(), "Scale factor on input data useful for better plotting")
@@ -81,7 +82,8 @@ int main(int argc, char *argv[])
     cmdline_options.add(positional_params).add(generic_params).add(curve_params);
 
     po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(positional_options).run(), vm);
+    auto parsed_options = po::command_line_parser(argc, argv).options(cmdline_options).positional(positional_options).run();
+    po::store(parsed_options, vm);
     po::notify(vm);
 
     // Process the generic options
@@ -108,6 +110,11 @@ int main(int argc, char *argv[])
     p.origin = vm.count("origin");
     if (vm.count("type"))
       p.spline = vm["type"].as<std::string>()=="qb"? QB : CB;
+    for (const po::option& o : parsed_options.options) {
+      if (o.string_key == "constraint")
+        p.constraints.push_back(o.value);
+    }
+
     if (vm.count("relax")) p.relax = vm["relax"].as<double>();
     if (vm.count("max-it")) p.max_it = vm["max-it"].as<double>();
     double scale = vm.count("scale")? vm["scale"].as<double>() : 1;
