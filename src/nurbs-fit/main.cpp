@@ -70,6 +70,8 @@ int main(int argc, char *argv[])
       //("dimensions,d", "Nurber of dimensions. Currently only 2 is supported (option is ignored)")
       ("origin,o", "Shifts and rotates the curve to have the middle at the origin with an horizontal tangent")
       ("scale,s", po::value<double>(), "Scale factor on input data useful for better plotting")
+      ("relax,r", po::value<double>(), "Solver relaxation factor")
+      ("max-it,m", po::value<double>(), "Solver maximum iteration count")
       ;
 
     //
@@ -106,6 +108,8 @@ int main(int argc, char *argv[])
     p.origin = vm.count("origin");
     if (vm.count("type"))
       p.spline = vm["type"].as<std::string>()=="qb"? QB : CB;
+    if (vm.count("relax")) p.relax = vm["relax"].as<double>();
+    if (vm.count("max-it")) p.max_it = vm["max-it"].as<double>();
     double scale = vm.count("scale")? vm["scale"].as<double>() : 1;
 
 
