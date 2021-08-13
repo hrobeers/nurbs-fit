@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
       ("scale,s", po::value<double>(), "Scale factor on input data useful for better plotting")
       ("relax,r", po::value<double>(), "Solver relaxation factor")
       ("max-it,m", po::value<double>(), "Solver maximum iteration count")
+      ("tol", po::value<double>(), "Solver stop condition tolerance")
       ;
 
     //
@@ -117,6 +118,7 @@ int main(int argc, char *argv[])
 
     if (vm.count("relax")) p.relax = vm["relax"].as<double>();
     if (vm.count("max-it")) p.max_it = vm["max-it"].as<double>();
+    if (vm.count("tol")) p.tol = vm["tol"].as<double>();
     double scale = vm.count("scale")? vm["scale"].as<double>() : 1;
 
 

@@ -18,6 +18,7 @@
 #include <nurbs-fit/curvefit.hpp>
 
 #include <list>
+#include <numeric>
 
 #include "nurbs-fit/curveproc.hpp"
 #include "nurbs-fit/invert-matrix.hpp"
@@ -121,6 +122,32 @@ namespace nurbsfit {
     // TODO return std::array?
     return Pr;
   }
+
+  // Equidistant u sum
+  double u_sum_equidistant(size_t ucnt) {
+    double inc = 1.0/(ucnt+1);
+    double sum = 0;
+    for (size_t i=1; i<=ucnt; i++)
+      sum += i*inc;
+    return sum;
+  }
+
+  // Distance based u sum
+  template <int Dim>
+  double u_sum_distance(const std::vector<hrlib::vertex<Dim>> &P) {
+    std::vector<double> distances;
+    for (size_t i=1; i<P.size(); i++)
+      distances.push_back(dist(P[i],P[i-1]));
+    double total_dist = std::accumulate(distances.cbegin(), distances.cend(), 0.0);
+    double usum = 0;
+    double dist = 0;
+    for (size_t i=0; i<(distances.size()-1); i++) {
+      double inc = distances[i]/total_dist;
+      usum += dist + inc;
+      dist += inc;
+    }
+    return usum;
+  }
 }
 
 std::vector<hrlib::vertex<2>> nurbsfit::fit_qb(const std::vector<hrlib::vertex<2>> &P,
@@ -207,8 +234,10 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
     // u, u^3, (1-u)^3, Pc1, Pc2
     size_t cols = 3*ucnt + ccnt*Dim;
 
+    // Estimate the usum
+    double usum = u_sum_distance<Dim>(P); // u_sum_equidistant(ucnt)*1.2;
 
-    f_Ab fAb = [ucnt,cols,Dim,tangents,&P](auto u, auto &vA, auto &vb) {
+    f_Ab fAb = [ucnt, usum,cols,Dim,tangents,relax,&P](auto u, auto &vA, auto &vb) {
       auto P0 = P.front();
       auto P1 = P.back();
 
@@ -250,17 +279,6 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
           vA.push_back(std::move(a));
         }
 
-      if (ucnt < 8 && !tangents) {
-        // Enforce Pc1x+Pc2x = P0x+P1x (extra equation)
-        // Improves stability when X as main axis
-        {
-          std::vector<double> a(cols, 0);
-          a[3*ucnt] = 1;
-          a[3*ucnt+Dim] = 1;
-          vb.push_back(P0[0]+P1[0]);
-          vA.push_back(std::move(a));
-        }
-      }
       if (ucnt >= 8 || tangents) {
         // Fix tangents
         {
@@ -286,16 +304,27 @@ std::vector<hrlib::vertex<2>> nurbsfit::fit_cb(const std::vector<hrlib::vertex<2
           vA.push_back(std::move(a));
         }
       }
+
+      // A slight push towards an estimated u params sum (reduces weird control point behavior)
+      {
+        std::vector<double> a(cols, 0);
+        for (size_t i=0; i<ucnt; i++)
+          a[i] = 1;
+        vb.push_back(usum);
+        vA.push_back(std::move(a));
+      }
       /*
-      // Sets the last point's tangent vertical
-      A(r,3*ucnt+Dim) = 1;
-      b(r) = 0;
-      r++;
-      // Sets 5*Pc1y = -Pc0x
-      A(r,3*ucnt) = 1;
-      A(r,3*ucnt+Dim+1) = 5;
-      b(r) = P1[1]+P0[0];
-      r++;
+      if (vA.size()<cols || it<1./relax) {
+        // Enforce Pc1x+Pc2x = P0x+P1x (extra equation)
+        // Improves stability when X as main axis
+        {
+          std::vector<double> a(cols, 0);
+          a[3*ucnt] = 1;
+          a[3*ucnt+Dim] = 1;
+          vb.push_back(P0[0]+P1[0]);
+          vA.push_back(std::move(a));
+        }
+      }
       */
     };
 
